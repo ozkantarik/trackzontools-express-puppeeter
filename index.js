@@ -7,7 +7,7 @@ const app = express();
 app.get('/get-html', async (req, res) => {
 
     const browser  = await puppeeter.launch({
-        headless:false,
+        headless:true,
     });
    const page =  await browser.newPage();
 
