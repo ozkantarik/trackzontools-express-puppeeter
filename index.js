@@ -10,11 +10,42 @@ var UACounter = 0;
 
 app.get('/get-html', async (req, res) => {
 
+
+    var errorStatus = false;
+    do {
     const browser  = await puppeeter.launch({
-        headless:true,
-    });
+        headless: false,
+        // ignoreHTTPSErrors: true,
+        slowMo:250,
+        args: [
+            '--no-sandbox',
+            // '--disable-setuid-sandbox',
+            // '--disable-dev-shm-usage',
+            // '--disable-accelerated-2d-canvas',
+            // '--disable-gpu',
+            // '--window-size=1920x1080',
+            // `--disk-cache-size=0`
+            `--proxy-server=socks5://127.0.0.1:9050`,
+
+
+        ]    });
+
+       
    const page =  await browser.newPage();
 
+   await page.setViewport({width:1280,height:800});
+   // await page.setUserAgent(UA.GET());
+   await page.setJavaScriptEnabled(false);
+   await page.setRequestInterception(true);
+
+
+   page.on('request', request => {
+       if (['image', 'stylesheet', 'font', 'script'].indexOf(request.resourceType()) !== -1) {
+           request.abort();
+       } else {
+           request.continue();
+       }
+   });
     await page.goto(req.query.url);
 
     let title = await page.title();
@@ -24,7 +55,7 @@ app.get('/get-html', async (req, res) => {
         UACounter++;
         UA.Refresh();
         console.log('We got the ROBOT');
-        throw new Error('ROBOT Cought us');
+        // throw new Error('ROBOT Cought us');
     }
 
 
@@ -33,11 +64,15 @@ app.get('/get-html', async (req, res) => {
         console.log('Something went wrong');
         UACounter++;
         UA.Refresh();
-        throw new Error('Something went wrong');
+        // throw new Error('Something went wrong');
 
     }
 
     if(UACounter > 10){
+
+        await browser.close();
+        errorStatus =  true;
+
         TOR.Refresh();
     }
 
@@ -48,6 +83,7 @@ app.get('/get-html', async (req, res) => {
     });
 
     await browser.close();
+}while(errorStatus);
 });
 
 app.listen(3333, () => {
