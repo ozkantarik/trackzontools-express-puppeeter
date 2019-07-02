@@ -14,9 +14,9 @@ app.get('/get-html', async (req, res) => {
     var errorStatus = false;
     do {
     const browser  = await puppeeter.launch({
-        headless: false,
+        headless: true,
         // ignoreHTTPSErrors: true,
-        slowMo:250,
+        slowMo:500,
         args: [
             '--no-sandbox',
             // '--disable-setuid-sandbox',
@@ -34,20 +34,21 @@ app.get('/get-html', async (req, res) => {
    const page =  await browser.newPage();
 
    await page.setViewport({width:1280,height:800});
-   // await page.setUserAgent(UA.GET());
-   await page.setJavaScriptEnabled(false);
-   await page.setRequestInterception(true);
+   await page.setUserAgent(UA.GET());
+//    await page.setJavaScriptEnabled(false);
+//    await page.setRequestInterception(true);
 
 
-   page.on('request', request => {
-       if (['image', 'stylesheet', 'font', 'script'].indexOf(request.resourceType()) !== -1) {
-           request.abort();
-       } else {
-           request.continue();
-       }
-   });
+//    page.on('request', request => {
+//        if (['image', 'stylesheet', 'font', 'script'].indexOf(request.resourceType()) !== -1) {
+//            request.abort();
+//        } else {
+//            request.continue();
+//        }
+//    });
     await page.goto(req.query.url);
 
+    // await page.waitForNavigation();
     let title = await page.title();
 
     if(title === 'Robot Check')
@@ -55,6 +56,8 @@ app.get('/get-html', async (req, res) => {
         UACounter++;
         UA.Refresh();
         console.log('We got the ROBOT');
+        errorStatus =  true;
+
         // throw new Error('ROBOT Cought us');
     }
 
@@ -64,11 +67,13 @@ app.get('/get-html', async (req, res) => {
         console.log('Something went wrong');
         UACounter++;
         UA.Refresh();
+        errorStatus =  true;
+
         // throw new Error('Something went wrong');
 
     }
 
-    if(UACounter > 10){
+    if(UACounter > 4){
 
         await browser.close();
         errorStatus =  true;
@@ -77,11 +82,19 @@ app.get('/get-html', async (req, res) => {
     }
 
 
+    html = await   page.evaluate(() => document.body.innerHTML);
+
+    if(!errorStatus){
+
+
+        await browser.close();
 
     await res.send({
-        'html' : await   page.evaluate(() => document.body.innerHTML)
+        'html' : html 
     });
 
+    break;
+    }
     await browser.close();
 }while(errorStatus);
 });
