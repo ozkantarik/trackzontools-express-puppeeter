@@ -11,15 +11,17 @@ var UACounter = 0;
 app.get('/get-html', async (req, res) => {
 
 
+    let page;
     var errorStatus = false;
     do {
     const browser  = await puppeeter.launch({
         headless: true,
         // ignoreHTTPSErrors: true,
-        slowMo:500,
+        slowMo:250,
         args: [
             '--no-sandbox',
-            // '--disable-setuid-sandbox',
+            '--disable-setuid-sandbox',
+            `--ignore-certificate-errors`,
             // '--disable-dev-shm-usage',
             // '--disable-accelerated-2d-canvas',
             // '--disable-gpu',
@@ -31,7 +33,7 @@ app.get('/get-html', async (req, res) => {
         ]    });
 
        
-   const page =  await browser.newPage();
+   page =  await browser.newPage();
 
    await page.setViewport({width:1280,height:800});
    await page.setUserAgent(UA.GET());
@@ -46,7 +48,9 @@ app.get('/get-html', async (req, res) => {
 //            request.continue();
 //        }
 //    });
-    await page.goto(req.query.url);
+    await page.goto(req.query.url, {
+        waitUntil:'domcontentloaded'
+    });
 
     // await page.waitForNavigation();
     let title = await page.title();
@@ -73,16 +77,11 @@ app.get('/get-html', async (req, res) => {
 
     }
 
-    if(UACounter > 4){
-
-        await browser.close();
-        errorStatus =  true;
-
-        TOR.Refresh();
-    }
+   
 
 
     html = await   page.evaluate(() => document.body.innerHTML);
+    await page.close();
 
     if(!errorStatus){
 
@@ -94,8 +93,19 @@ app.get('/get-html', async (req, res) => {
     });
 
     break;
+    }else{
+
+    
+    // await browser.close();
     }
-    await browser.close();
+
+    if(UACounter > 4){
+
+        await browser.close();
+        errorStatus =  true;
+
+        TOR.Refresh();
+    }
 }while(errorStatus);
 });
 
